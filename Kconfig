@@ -29,4 +29,6 @@ source "lib/Kconfig"
 
 source "lib/Kconfig.debug"
 
+source "lib/Kconfig.dysche"
+
 source "Documentation/Kconfig"
