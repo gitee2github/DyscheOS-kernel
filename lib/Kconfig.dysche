@@ -1,0 +1,10 @@
+config EULER_DYSCHE
+    bool "Support for the Dysche Solution."
+    depends on HOTPLUG_CPU
+    select ARM_GIC_V3
+    select ARM_GIC_V3_ITS
+    default y if ARM64
+    default n
+    help
+        Support for the Dysche Solution
+

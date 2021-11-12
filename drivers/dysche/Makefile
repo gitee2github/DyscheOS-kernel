@@ -1,0 +1,1 @@
+obj-$(CONFIG_EULER_DYSCHE) += dysche_sysfs.o
