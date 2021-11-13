@@ -13,3 +13,8 @@ int init_dysche_config(struct dysche_instance* ins)
 
 	return 0;	
 }
+
+void fini_dysche_config(struct dysche_instance *ins)
+{
+	return;
+}

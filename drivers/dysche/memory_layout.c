@@ -29,10 +29,15 @@ int init_memory_layout(struct dysche_instance *ins)
 		ins->mems[0].phys + layouts[DYSCHE_T_SH_DYSCHE_CONFIG].offset,
 		layouts[DYSCHE_T_SH_DYSCHE_CONFIG].size, MEMREMAP_WB);
 	if (!ins->config)
-		return -1;
+		return -EIO;
 
 	return 0;
-	// TODO
+}
+
+void fini_memory_layout(struct dysche_instance *ins)
+{
+	if (ins->config)
+		memunmap(ins->config);
 }
 
 int fill_memory_region_from_dysche_resource(struct dysche_instance *ins,

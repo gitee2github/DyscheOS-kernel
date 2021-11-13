@@ -141,23 +141,31 @@ enum dysche_memory_type {
 	DYSCHE_T_SLAVE_ROOTFS,
 };
 
+// arguments.
+static inline int dysche_parse_args(struct dysche_instance *ins,
+				    const char *arg)
+{
+	// TODO: parse slave_name.
+	// TODO: parse cpus.
+	// TODO: parse memory blocks.
+	// TODO: parse kernel and roofs.
+	// TODO: parse devices.
+	return 0;
+}
+
 // sysfs
 int init_dysche_sysfs(void);
 void fini_dysche_sysfs(void);
 int init_partition_sysfs(struct dysche_instance *ins);
 void fini_partition_sysfs(struct dysche_instance *ins);
 
-//
+// 
 int init_memory_layout(struct dysche_instance*ins);
 void fini_memory_layout(struct dysche_instance* ins);
 
 // shared part of dysche memory
 int init_dysche_config(struct dysche_instance *ins);
 void fini_dysche_config(struct dysche_instance *ins);
-
-// 
-int init_dysche_memory(struct dysche_instance *ins);
-void fini_dysche_memory(struct dysche_instance *ins);
 
 // fill memory region
 int fill_memory_region(struct dysche_instance *ins,
