@@ -37,8 +37,8 @@ static struct kobj_attribute dysche_create_attr =
 static ssize_t dysche_cpec_show(struct kobject *k, struct kobj_attribute *attr,
 				char *buf)
 {
-	phys_addr_t paddr;
-	size_t size;
+	phys_addr_t paddr = 0;
+	size_t size = 0;
 
 	//dysche_get_cross_partition_memory_info(&paddr, &size);
 
@@ -60,7 +60,8 @@ static struct kobj_type dysche_root_type = {
 	.default_attrs = dysche_root_default_attrs,
 };
 
-int dysche_sysfs_init(void)
+// Add root /sys/dysche
+int init_dysche_sysfs(void)
 {
 	int ret;
 	dysche_root = kzalloc(sizeof(*dysche_root), GFP_KERNEL);
@@ -75,12 +76,19 @@ int dysche_sysfs_init(void)
 	return ret;
 }
 
+void fini_dysche_sysfs(void)
+{
+	if (!dysche_root)
+		return;
+
+	kobject_del(dysche_root);
+}
+
 static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr,
 			   char *buf)
 {
-	struct dysche_instance *ins = kobj_to_dysche(kobj);
+	//struct dysche_instance *ins = kobj_to_dysche(kobj);
 
-	// TODO: kobj_to_dysche
 	return sprintf(buf, "TODO: kobj status.");
 }
 static struct kobj_attribute status_attribute =
@@ -101,9 +109,9 @@ static ssize_t desc_show(struct kobject *kobj, struct kobj_attribute *attr,
 	int ret;
 
 	si_lock(ins);
-	//ret = sprintf(buf, "%s\n\tName: %s\n\tID: %d\n\tcmdline: %s\n",
-	//	      "Description", ins->slave_name, ins->slave_id,
-	//	      ins->cmdline.vaddr);
+	ret = sprintf(buf, "%s\n\tName: %s\n\tID: %d\n\tcmdline: %s\n",
+		      "Description", ins->slave_name, ins->slave_id,
+		      ins->cmdline);
 	si_unlock(ins);
 
 	return ret;
@@ -114,7 +122,7 @@ static ssize_t heartbeat_show(struct kobject *kobj, struct kobj_attribute *attr,
 			      char *buf)
 {
 	struct dysche_instance *ins = kobj_to_dysche(kobj);
-	int ret;
+	int ret = 0;
 
 	si_lock(ins);
 	//ret = sprintf(buf, "%d\n", ins->max_lost_cnt);
@@ -208,7 +216,7 @@ static struct kobj_type partition_type = {
 	.default_attrs = partition_default_attrs,
 };
 
-int partition_sysfs_init(struct dysche_instance *part)
+int init_partition_sysfs(struct dysche_instance *part)
 {
 	int ret;
 	if (!dysche_root)
@@ -218,4 +226,9 @@ int partition_sysfs_init(struct dysche_instance *part)
 				   dysche_root, "%s", part->slave_name);
 
 	return ret;
+}
+
+void fini_partition_sysfs(struct dysche_instance *ins)
+{
+	kobject_del(&ins->dysche_kobj);
 }

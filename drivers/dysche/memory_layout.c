@@ -35,6 +35,66 @@ int init_memory_layout(struct dysche_instance *ins)
 	// TODO
 }
 
+int fill_memory_region_from_dysche_resource(struct dysche_instance *ins,
+					    enum dysche_memory_type type,
+					    off_t offset)
+{
+	int ret = 0;
+	off_t end;
+	struct dysche_resource *r;
+	void*loc;
+
+	if (!ins || ins->dysche_mem_region_nr == 0)
+		return -EINVAL;
+
+	switch (type) {
+	case DYSCHE_T_SLAVE_LOADER:
+		r = &ins->loader;
+		break;
+	case DYSCHE_T_SLAVE_FDT:
+		r = &ins->fdt;
+		break;
+	case DYSCHE_T_SLAVE_KERNEL:
+		r = &ins->kernel;
+		break;
+	case DYSCHE_T_SLAVE_ROOTFS:
+		r = &ins->rootfs;
+		break;
+	default:
+		return -ENOTSUPP;
+	}
+
+	if (!r->enabled)
+		return -EINVAL;
+
+	if (!r->get_size || !r->get_resource)
+		return -ENOTSUPP;
+
+	ret = r->get_size(r);
+	if (ret < 0)
+		return ret;
+
+	end = offset + ret;
+	if (end > layouts[type].size)
+		return -EOVERFLOW;
+
+	end += layouts[type].offset;
+	if (end > ins->mems[0].size)
+		return -EOVERFLOW;
+
+	// TODO: check memory align;
+
+	loc = memremap(ins->mems[0].phys + layouts[type].offset + offset, ret,
+		       MEMREMAP_WB);
+	if (!loc)
+		return -EIO;
+
+	ret = r->get_resource(r, loc, ret);
+
+	memunmap(loc);
+	return ret;
+}
+
 int fill_memory_region(struct dysche_instance *ins,
 		       enum dysche_memory_type type, off_t offset,
 		       const void *buf, size_t count)
