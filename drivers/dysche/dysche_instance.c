@@ -33,6 +33,24 @@ static int raw_get_resource(struct dysche_resource *r, void *buf, size_t count)
 	return 0;
 }
 
+static int raw_fdt_release(struct dysche_resource *r)
+{
+	if (!r)
+		return -EINVAL;
+
+	kfree(r->resource.rawdata.data);
+	return 0;
+}
+
+static int file_release(struct dysche_resource *r)
+{
+	if (!r)
+		return 0;
+
+	kfree(r->resource.filename);
+	return 0;
+}
+
 static int file_get_size(struct dysche_resource *r)
 {
 	struct file *fp;
@@ -106,6 +124,14 @@ int si_create(const char *buf, struct dysche_instance **contain)
 
 	ins->slave_id = ret;
 
+	// default callbacks.
+	ins->kernel.get_size = ins->rootfs.get_size = file_get_size;
+	ins->kernel.get_resource = ins->rootfs.get_resource = file_get_resource;
+	ins->kernel.release = ins->rootfs.release = file_release;
+	ins->loader.get_size = ins->fdt.get_size = raw_get_size;
+	ins->loader.get_resource = ins->fdt.get_resource = raw_get_resource;
+	ins->fdt.release = raw_fdt_release;
+
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
 		goto err_parse;
@@ -118,18 +144,14 @@ int si_create(const char *buf, struct dysche_instance **contain)
 
 	// TODO: fill cmdline for dysche_instance.
 
-	// TODO: fill fdt for dysche_instance.
+	ret = dysche_generate_fdt(ins);
+	if (ret)
+		goto err_layout;
 
 	if (!ins->kernel.enabled) {
 		pr_err("No kernel provided, exit.");
 		goto err_layout;
 	}
-
-	// default callbacks.
-	ins->kernel.get_size = ins->rootfs.get_size = file_get_size;
-	ins->kernel.get_resource = ins->rootfs.get_resource = file_get_resource;
-	ins->loader.get_size = ins->fdt.get_size = raw_get_size;
-	ins->loader.get_resource = ins->fdt.get_resource = raw_get_resource;
 
 	ret = init_partition_sysfs(ins);
 	if (ret)
@@ -141,6 +163,10 @@ err_layout:
 	fini_memory_layout(ins);
 
 err_parse:
+	release_dysche_resource(&ins->kernel);
+	release_dysche_resource(&ins->loader);
+	release_dysche_resource(&ins->rootfs);
+	release_dysche_resource(&ins->fdt);
 	idr_remove(&dysche_instances, ins->slave_id);
 
 err_alloc:

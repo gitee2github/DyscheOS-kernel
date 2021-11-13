@@ -142,16 +142,7 @@ enum dysche_memory_type {
 };
 
 // arguments.
-static inline int dysche_parse_args(struct dysche_instance *ins,
-				    const char *arg)
-{
-	// TODO: parse slave_name.
-	// TODO: parse cpus.
-	// TODO: parse memory blocks.
-	// TODO: parse kernel and roofs.
-	// TODO: parse devices.
-	return 0;
-}
+int dysche_parse_args(struct dysche_instance *ins, const char *arg);
 
 // sysfs
 int init_dysche_sysfs(void);
@@ -162,6 +153,10 @@ void fini_partition_sysfs(struct dysche_instance *ins);
 // 
 int init_memory_layout(struct dysche_instance*ins);
 void fini_memory_layout(struct dysche_instance* ins);
+size_t dysche_get_mem_size(struct dysche_instance *ins,
+			   enum dysche_memory_type type);
+phys_addr_t dysche_get_mem_phy(struct dysche_instance *ins,
+			       enum dysche_memory_type type);
 
 // shared part of dysche memory
 int init_dysche_config(struct dysche_instance *ins);
@@ -174,6 +169,9 @@ int fill_memory_region(struct dysche_instance *ins,
 int fill_memory_region_from_dysche_resource(struct dysche_instance *ins,
 					    enum dysche_memory_type type,
 					    off_t offset);
+
+// fdt
+int dysche_generate_fdt(struct dysche_instance *ins);
 
 static inline struct dysche_instance *kobj_to_dysche(struct kobject *kobj)
 {
