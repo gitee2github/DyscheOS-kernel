@@ -64,14 +64,14 @@ static int file_get_size(struct dysche_resource *r)
 	if (IS_ERR(fp))
 		return PTR_ERR(fp);
 
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 
 	vfs_stat(r->resource.filename, &stat);
 	size = stat.size;
 
 	filp_close(fp, NULL);
-	set_fs(fs);
+	//set_fs(fs);
 
 	return size;
 }
@@ -96,13 +96,13 @@ static int file_get_resource(struct dysche_resource *r, void *buf, size_t count)
 	if (IS_ERR(fp))
 		return PTR_ERR(fp);
 
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 
 	kernel_read(fp, buf, count, &pos);
 
 	filp_close(fp, NULL);
-	set_fs(fs);
+	//set_fs(fs);
 
 	return size;
 }

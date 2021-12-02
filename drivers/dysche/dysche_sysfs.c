@@ -2,8 +2,10 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/kobject.h>
+#include <linux/module.h>
 
 #include "dysche_partition.h"
+
 struct kobject *dysche_root;
 
 static void dysche_root_release(struct kobject *root)
@@ -61,7 +63,7 @@ static struct kobj_type dysche_root_type = {
 };
 
 // Add root /sys/dysche
-int init_dysche_sysfs(void)
+static __init int init_dysche_sysfs(void)
 {
 	int ret;
 	dysche_root = kzalloc(sizeof(*dysche_root), GFP_KERNEL);
@@ -75,14 +77,16 @@ int init_dysche_sysfs(void)
 
 	return ret;
 }
+module_init(init_dysche_sysfs);
 
-void fini_dysche_sysfs(void)
+static __exit void fini_dysche_sysfs(void)
 {
 	if (!dysche_root)
 		return;
 
 	kobject_del(dysche_root);
 }
+module_exit(fini_dysche_sysfs);
 
 static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr,
 			   char *buf)

@@ -116,6 +116,7 @@ struct dysche_instance {
 	enum OSType ostype;
 	int dysche_mem_region_nr;
 	struct dysche_memory mems[DYSCHE_MAX_MEM_REGIONS];
+	cpumask_t cpu_mask;
 	char slave_name[DYSCHE_NAME_LEN];
 	struct dysche_resource loader;
 	struct dysche_resource kernel;
@@ -145,8 +146,6 @@ enum dysche_memory_type {
 int dysche_parse_args(struct dysche_instance *ins, const char *arg);
 
 // sysfs
-int init_dysche_sysfs(void);
-void fini_dysche_sysfs(void);
 int init_partition_sysfs(struct dysche_instance *ins);
 void fini_partition_sysfs(struct dysche_instance *ins);
 

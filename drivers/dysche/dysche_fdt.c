@@ -1,5 +1,4 @@
 #include <linux/fdtable.h>
-#include <asm/boot.h>
 #include <linux/slab.h>
 #include <linux/efi.h>
 #include <linux/libfdt.h>
@@ -8,6 +7,8 @@
 
 #define FDT_SIZE_CELLS_DEFAULT 2
 #define FDT_ADDR_CELLS_DEFAULT 2
+
+#define MAX_FDT_SIZE SZ_2M
 
 int dysche_generate_fdt(struct dysche_instance *ins)
 {

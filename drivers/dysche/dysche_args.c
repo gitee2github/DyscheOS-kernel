@@ -54,6 +54,19 @@ static int dysche_parse_memory_regions(struct dysche_instance *ins,
 static int dysche_parse_cpu(struct dysche_instance *ins, const char *buf,
 			    int token)
 {
+	int cpu, ret;
+	cpumask_t tmp_mask;
+
+	ret = cpulist_parse(buf, &tmp_mask);
+	if (ret)
+		return ret;
+	
+	for_each_cpu(cpu, &tmp_mask)
+		if (!cpu_possible(cpu))
+			return -EOVERFLOW;
+
+	cpumask_copy(&ins->cpu_mask, &tmp_mask);
+
 	return 0;
 }
 
