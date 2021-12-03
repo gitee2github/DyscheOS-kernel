@@ -24,11 +24,11 @@ static ssize_t dysche_create_store(struct kobject *kobj,
 	if (ret)
 		return ret;
 
-	ret = si_run(ins);
-	if (ret) {
-		si_destroy(ins);
-		return ret;
-	}
+//	ret = si_run(ins);
+//	if (ret) {
+//		si_destroy(ins);
+//		return ret;
+//	}
 
 	return count;
 }

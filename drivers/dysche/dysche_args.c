@@ -4,7 +4,7 @@
 
 #include "dysche_partition.h"
 
-typedef int (*dysche_parser)(struct dysche_instance *, const char *, int);
+typedef int (*dysche_parser)(struct dysche_instance *, char *, int);
 
 enum {
 	Opt_slave_name,
@@ -12,15 +12,15 @@ enum {
 	Opt_cpu_ids,
 	Opt_cmdline,
 	// Opt_heartbeat_timeout,
-	// Opt_fdt,
+	Opt_fdt,
 	Opt_kernel,
 	Opt_rootfs,
 	Opt_ostype,
 	Opt_err,
 };
 
-static int dysche_parse_normal_string(struct dysche_instance *ins,
-				      const char *buf, int token)
+static int dysche_parse_normal_string(struct dysche_instance *ins, char *buf,
+				      int token)
 {
 	char *target;
 	int limit;
@@ -45,14 +45,33 @@ static int dysche_parse_normal_string(struct dysche_instance *ins,
 	return 0;
 }
 
-static int dysche_parse_memory_regions(struct dysche_instance *ins,
-				       const char *buf, int token)
+static int dysche_parse_memory_regions(struct dysche_instance *ins, char *buf,
+				       int token)
 {
+	char *old;
+	unsigned long start_at, mem_size;
+
+	if (!buf)
+		return -EINVAL;
+
+	old = buf;
+	mem_size = memparse(buf, &buf);
+	if (old == buf)
+		return -EINVAL;
+
+	if (*buf == '@') {
+		start_at = memparse(buf + 1, &buf);
+		ins->mems[0].phys = start_at;
+		ins->mems[0].size = mem_size;
+		ins->dysche_mem_region_nr = 1;
+	} else {
+		return -EINVAL;
+	}
+
 	return 0;
 }
 
-static int dysche_parse_cpu(struct dysche_instance *ins, const char *buf,
-			    int token)
+static int dysche_parse_cpu(struct dysche_instance *ins, char *buf, int token)
 {
 	int cpu, ret;
 	cpumask_t tmp_mask;
@@ -60,8 +79,8 @@ static int dysche_parse_cpu(struct dysche_instance *ins, const char *buf,
 	ret = cpulist_parse(buf, &tmp_mask);
 	if (ret)
 		return ret;
-	
-	for_each_cpu(cpu, &tmp_mask)
+
+	for_each_cpu (cpu, &tmp_mask)
 		if (!cpu_possible(cpu))
 			return -EOVERFLOW;
 
@@ -70,8 +89,8 @@ static int dysche_parse_cpu(struct dysche_instance *ins, const char *buf,
 	return 0;
 }
 
-static int dysche_parse_file_resource(struct dysche_instance *ins,
-				      const char *buf, int token)
+static int dysche_parse_file_resource(struct dysche_instance *ins, char *buf,
+				      int token)
 {
 	struct dysche_resource *target;
 	switch (token) {
@@ -80,6 +99,9 @@ static int dysche_parse_file_resource(struct dysche_instance *ins,
 		break;
 	case Opt_rootfs:
 		target = &ins->rootfs;
+		break;
+	case Opt_fdt:
+		target = &ins->fdt;
 		break;
 	default:
 		return -EINVAL;
@@ -90,7 +112,7 @@ static int dysche_parse_file_resource(struct dysche_instance *ins,
 	return 0;
 }
 
-static int dysche_parse_ostype(struct dysche_instance *ins, const char *buf,
+static int dysche_parse_ostype(struct dysche_instance *ins, char *buf,
 			       int token)
 {
 	if (strcmp(buf, "linux") == 0)
@@ -105,6 +127,7 @@ static dysche_parser dysche_parsers[] = {
 	[Opt_memory] = dysche_parse_memory_regions,
 	[Opt_cpu_ids] = dysche_parse_cpu,
 	[Opt_cmdline] = dysche_parse_normal_string,
+	[Opt_fdt] = dysche_parse_file_resource,
 	[Opt_kernel] = dysche_parse_file_resource,
 	[Opt_rootfs] = dysche_parse_file_resource,
 	[Opt_ostype] = dysche_parse_ostype,
@@ -124,17 +147,14 @@ static match_table_t s_dysche_create_args = {
 	// Format: Resources
 	{ Opt_kernel, "kernel=%s" },
 	{ Opt_rootfs, "rootfs=%s" },
-
+	{ Opt_fdt, "fdt=%s" },
 	{ Opt_ostype, "ostype=%s" },
 
 	// Err
 	{ Opt_err, NULL },
 };
 
-// TODO: parse slave_name.
-// TODO: parse cpus.
-// TODO: parse memory blocks.
-// TODO: parse kernel and roofs.
+
 // TODO: parse devices.
 int dysche_parse_args(struct dysche_instance *si, const char *str)
 {

@@ -7,6 +7,8 @@
 
 static DEFINE_IDR(dysche_instances);
 
+extern void dysche_boot_cpu(int cpu, phys_addr_t addr);
+
 static int raw_get_size(struct dysche_resource *r)
 {
 	if (!r || !r->enabled)
@@ -113,7 +115,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	struct dysche_instance *ins;
 	int ret;
 
-	ins = kmalloc(sizeof(*ins), GFP_KERNEL);
+	ins = kzalloc(sizeof(*ins), GFP_KERNEL);
 	if (!ins)
 		return -ENOMEM;
 
@@ -125,12 +127,14 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	ins->slave_id = ret;
 
 	// default callbacks.
-	ins->kernel.get_size = ins->rootfs.get_size = file_get_size;
-	ins->kernel.get_resource = ins->rootfs.get_resource = file_get_resource;
-	ins->kernel.release = ins->rootfs.release = file_release;
+	ins->fdt.get_size = ins->kernel.get_size = ins->rootfs.get_size =
+		file_get_size;
+	ins->fdt.get_resource = ins->kernel.get_resource =
+		ins->rootfs.get_resource = file_get_resource;
+	ins->fdt.release = ins->kernel.release = ins->rootfs.release =
+		file_release;
 	ins->loader.get_size = ins->fdt.get_size = raw_get_size;
 	ins->loader.get_resource = ins->fdt.get_resource = raw_get_resource;
-	ins->fdt.release = raw_fdt_release;
 
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
@@ -144,9 +148,14 @@ int si_create(const char *buf, struct dysche_instance **contain)
 
 	// TODO: fill cmdline for dysche_instance.
 
-	ret = dysche_generate_fdt(ins);
-	if (ret)
-		goto err_layout;
+	if (!ins->fdt.enabled) {
+		ret = dysche_generate_fdt(ins);
+		if (ret)
+			goto err_layout;
+
+		ins->fdt.release = raw_fdt_release;
+		ins->fdt.enabled = true;
+	}
 
 	if (!ins->kernel.enabled) {
 		pr_err("No kernel provided, exit.");
@@ -185,7 +194,8 @@ int si_run(struct dysche_instance *ins)
 {
 	// you can reload kernel and rootfs with reboot.
 	// TODO: status change.
-	int ret;
+	int ret, cpu;
+	unsigned long addr;
 	ret = init_dysche_config(ins);
 	if (ret)
 		return ret;
@@ -214,7 +224,12 @@ int si_run(struct dysche_instance *ins)
 	if (ret)
 		pr_warn("load rootfs failed.");
 
-	// TODO: boot
+	// TODO: prepare resources.
+	
+	cpu = cpumask_first(&ins->cpu_mask);
+	addr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_KERNEL);
+	dysche_boot_cpu(cpu, addr);
+
 	return 0;
 }
 int si_destroy(struct dysche_instance *ins)

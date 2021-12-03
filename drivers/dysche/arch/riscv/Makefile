@@ -1,0 +1,1 @@
+obj-y += boot_cpu.o
