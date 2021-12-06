@@ -7,14 +7,14 @@
 
 static DEFINE_IDR(dysche_instances);
 
-extern void dysche_boot_cpu(int cpu, phys_addr_t addr);
+extern int dysche_boot_cpu(int cpu, phys_addr_t addr);
 
 static int raw_get_size(struct dysche_resource *r)
 {
 	if (!r || !r->enabled)
 		return -EINVAL;
 
-	return r->resource.rawdata.size;
+	return r->rawdata.size;
 }
 
 static int raw_get_resource(struct dysche_resource *r, void *buf, size_t count)
@@ -30,7 +30,7 @@ static int raw_get_resource(struct dysche_resource *r, void *buf, size_t count)
 	if (ret > count)
 		return -EOVERFLOW;
 
-	memcpy(buf, r->resource.rawdata.data, count);
+	memcpy(buf, r->rawdata.data, count);
 
 	return 0;
 }
@@ -40,7 +40,7 @@ static int raw_fdt_release(struct dysche_resource *r)
 	if (!r)
 		return -EINVAL;
 
-	kfree(r->resource.rawdata.data);
+	kfree(r->rawdata.data);
 	return 0;
 }
 
@@ -49,7 +49,7 @@ static int file_release(struct dysche_resource *r)
 	if (!r)
 		return 0;
 
-	kfree(r->resource.filename);
+	kfree(r->filename);
 	return 0;
 }
 
@@ -58,20 +58,20 @@ static int file_get_size(struct dysche_resource *r)
 	struct file *fp;
 	mm_segment_t fs;
 	struct kstat stat;
-	int size = 0;
+	int ret, size = 0;
 	if (!r || !r->enabled)
 		return -EINVAL;
 
-	fp = filp_open(r->resource.filename, O_RDONLY, 0);
+	fp = filp_open(r->filename, O_RDONLY, 0);
 	if (IS_ERR(fp))
 		return PTR_ERR(fp);
 
 	//fs = get_fs();
 	//set_fs(KERNEL_DS);
 
-	vfs_stat(r->resource.filename, &stat);
-	size = stat.size;
-
+	//ret = vfs_stat(r->filename, &stat);
+	//size = stat.size;
+	size = fp->f_inode->i_size;
 	filp_close(fp, NULL);
 	//set_fs(fs);
 
@@ -94,7 +94,7 @@ static int file_get_resource(struct dysche_resource *r, void *buf, size_t count)
 	if (size > count)
 		return -EOVERFLOW;
 
-	fp = filp_open(r->resource.filename, O_RDONLY, 0);
+	fp = filp_open(r->filename, O_RDONLY, 0);
 	if (IS_ERR(fp))
 		return PTR_ERR(fp);
 
@@ -106,7 +106,7 @@ static int file_get_resource(struct dysche_resource *r, void *buf, size_t count)
 	filp_close(fp, NULL);
 	//set_fs(fs);
 
-	return size;
+	return 0;
 }
 
 int si_create(const char *buf, struct dysche_instance **contain)
@@ -144,7 +144,9 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	if (ret)
 		goto err_parse;
 
-	// TODO: fill dysche_resource for loader.
+	ret = dysche_prepare_loader(ins);
+	if (ret)
+		goto err_layout;
 
 	// TODO: fill cmdline for dysche_instance.
 
@@ -166,6 +168,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	if (ret)
 		goto err_layout;
 
+	*contain = ins;
 	return 0;
 
 err_layout:
@@ -225,11 +228,15 @@ int si_run(struct dysche_instance *ins)
 		pr_warn("load rootfs failed.");
 
 	// TODO: prepare resources.
-	
-	cpu = cpumask_first(&ins->cpu_mask);
-	addr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_KERNEL);
-	dysche_boot_cpu(cpu, addr);
 
+	cpu = cpumask_first(&ins->cpu_mask);
+	addr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_LOADER);
+	pr_info("Use cpu%d for boot cpu on addr(0x%lx)", cpu, addr);
+	ret = dysche_boot_cpu(cpu, addr);
+	if (ret) {
+		pr_err("boot cpu failed(%d).", ret);
+		return ret;
+	}
 	return 0;
 }
 int si_destroy(struct dysche_instance *ins)

@@ -1,1 +1,1 @@
-obj-y += boot_cpu.o
+obj-y += boot_cpu.o loader.o

@@ -24,11 +24,11 @@ static ssize_t dysche_create_store(struct kobject *kobj,
 	if (ret)
 		return ret;
 
-//	ret = si_run(ins);
-//	if (ret) {
-//		si_destroy(ins);
-//		return ret;
-//	}
+	ret = si_run(ins);
+	if (ret) {
+		si_destroy(ins);
+		return ret;
+	}
 
 	return count;
 }
@@ -101,8 +101,9 @@ static struct kobj_attribute status_attribute =
 static ssize_t cpu_show(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf)
 {
-	// TODO: kobj_to_dysche
-	return sprintf(buf, "TODO: cpu show.");
+	struct dysche_instance *ins = kobj_to_dysche(kobj);
+
+	return sprintf(buf, "%*pbl", cpumask_pr_args(&ins->cpu_mask));
 }
 static struct kobj_attribute cpu_attribute = __ATTR(cpu, 0444, cpu_show, NULL);
 

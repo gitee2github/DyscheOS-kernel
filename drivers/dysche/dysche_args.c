@@ -80,7 +80,7 @@ static int dysche_parse_cpu(struct dysche_instance *ins, char *buf, int token)
 	if (ret)
 		return ret;
 
-	for_each_cpu (cpu, &tmp_mask)
+	for_each_cpu(cpu, &tmp_mask)
 		if (!cpu_possible(cpu))
 			return -EOVERFLOW;
 
@@ -108,7 +108,7 @@ static int dysche_parse_file_resource(struct dysche_instance *ins, char *buf,
 	}
 
 	target->enabled = true;
-	target->resource.filename = kstrdup(buf, GFP_KERNEL);
+	target->filename = kstrdup(buf, GFP_KERNEL);
 	return 0;
 }
 

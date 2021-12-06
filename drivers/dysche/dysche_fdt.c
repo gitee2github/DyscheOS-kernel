@@ -88,8 +88,8 @@ int dysche_generate_fdt(struct dysche_instance *ins)
 	fdt_setprop(buf, offset, "linux,usable-memory-range", memory,
 		    16 * ins->dysche_mem_region_nr);
 
-	ins->fdt.resource.rawdata.data = buf;
-	ins->fdt.resource.rawdata.size = MAX_FDT_SIZE;
+	ins->fdt.rawdata.data = buf;
+	ins->fdt.rawdata.size = MAX_FDT_SIZE;
 	return 0;
 
 free_buf:

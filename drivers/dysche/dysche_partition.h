@@ -75,7 +75,7 @@ struct dysche_resource {
 			void *data;
 			size_t size;
 		} rawdata;
-	} resource;
+	};
 	int (*release)(struct dysche_resource *);
 	int (*get_resource)(struct dysche_resource *, void *tgt, size_t count);
 	int (*get_size)(struct dysche_resource *);
@@ -171,6 +171,9 @@ int fill_memory_region_from_dysche_resource(struct dysche_instance *ins,
 
 // fdt
 int dysche_generate_fdt(struct dysche_instance *ins);
+
+// loader
+int dysche_prepare_loader(struct dysche_instance *ins);
 
 static inline struct dysche_instance *kobj_to_dysche(struct kobject *kobj)
 {
