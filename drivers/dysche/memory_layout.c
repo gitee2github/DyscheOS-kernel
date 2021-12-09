@@ -14,10 +14,10 @@ static const struct memory_layout layouts[] = {
 	[DYSCHE_T_SH_DYSCHE_CONFIG] = { 0, SZ_1M },
 	[DYSCHE_T_SH_VCONSOLE] = { SZ_1M, SZ_1M },
 	[DYSCHE_T_SH_PARTEP] = { SZ_2M, SZ_4M },
-	[DYSCHE_T_SLAVE_LOADER] = { SZ_8M, SZ_1M },
-	[DYSCHE_T_SLAVE_FDT] = { SZ_8M + SZ_2M, SZ_4M + SZ_2M },
-	[DYSCHE_T_SLAVE_KERNEL] = { SZ_16M, SZ_64M },
-	[DYSCHE_T_SLAVE_ROOTFS] = { SZ_16M + SZ_64M, SZ_1G },
+	[DYSCHE_T_SLAVE_LOADER] = { SZ_8M - SZ_2M, SZ_2M },
+	[DYSCHE_T_SLAVE_KERNEL] = { SZ_8M, SZ_64M },
+	[DYSCHE_T_SLAVE_FDT] = { SZ_8M + SZ_64M, SZ_8M },
+	[DYSCHE_T_SLAVE_ROOTFS] = { SZ_16M + SZ_64M, SZ_512M },
 };
 
 phys_addr_t dysche_get_mem_phy(struct dysche_instance *ins,
@@ -93,6 +93,9 @@ int fill_memory_region_from_dysche_resource(struct dysche_instance *ins,
 	ret = r->get_size(r);
 	if (ret < 0)
 		return ret;
+
+	if (ret == 0)
+		return -EINVAL; // fdt is empty.
 
 	end = offset + ret;
 	if (end > layouts[type].size)

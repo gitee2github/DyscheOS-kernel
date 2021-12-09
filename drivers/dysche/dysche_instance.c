@@ -133,8 +133,8 @@ int si_create(const char *buf, struct dysche_instance **contain)
 		ins->rootfs.get_resource = file_get_resource;
 	ins->fdt.release = ins->kernel.release = ins->rootfs.release =
 		file_release;
-	ins->loader.get_size = ins->fdt.get_size = raw_get_size;
-	ins->loader.get_resource = ins->fdt.get_resource = raw_get_resource;
+	ins->loader.get_size = raw_get_size;
+	ins->loader.get_resource = raw_get_resource;
 
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
