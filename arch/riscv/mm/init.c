@@ -152,6 +152,28 @@ disable:
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
+/*
+ * The default maximal physical memory size is -PAGE_OFFSET,
+ * limit the memory size via mem.
+ */
+static phys_addr_t memory_limit = -PAGE_OFFSET;
+
+static int __init early_mem(char *p)
+{
+	u64 size;
+
+	if (!p)
+		return 1;
+
+	size = memparse(p, &p) & PAGE_MASK;
+	memory_limit = min_t(u64, size, memory_limit);
+
+	pr_notice("Memory limited to %lldMB\n", (u64)memory_limit >> 20);
+
+	return 0;
+}
+early_param("mem", early_mem);
+
 void __init setup_bootmem(void)
 {
 	phys_addr_t mem_start = 0;
@@ -175,7 +197,7 @@ void __init setup_bootmem(void)
 	 * Make sure that any memory beyond mem_start + (-PAGE_OFFSET) is removed
 	 * as it is unusable by kernel.
 	 */
-	memblock_enforce_memory_limit(-PAGE_OFFSET);
+	memblock_enforce_memory_limit(memory_limit);
 
 	/* Reserve from the start of the kernel to the end of the kernel */
 	memblock_reserve(vmlinux_start, vmlinux_end - vmlinux_start);
