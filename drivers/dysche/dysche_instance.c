@@ -56,9 +56,10 @@ static int file_release(struct dysche_resource *r)
 static int file_get_size(struct dysche_resource *r)
 {
 	struct file *fp;
-	mm_segment_t fs;
-	struct kstat stat;
-	int ret, size = 0;
+	//mm_segment_t fs;
+	//struct kstat stat;
+	//int ret = 0;
+	int size = 0;
 	if (!r || !r->enabled)
 		return -EINVAL;
 
@@ -81,7 +82,7 @@ static int file_get_size(struct dysche_resource *r)
 static int file_get_resource(struct dysche_resource *r, void *buf, size_t count)
 {
 	struct file *fp;
-	mm_segment_t fs;
+	//mm_segment_t fs;
 	int size = 0;
 	loff_t pos = 0;
 	if (!r || !r->enabled || !r->get_size)
@@ -151,6 +152,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	// TODO: fill cmdline for dysche_instance.
 
 	if (!ins->fdt.enabled) {
+		printk(KERN_INFO"Prepare FDT for [%s]\n", ins->slave_name);
 		ret = dysche_generate_fdt(ins);
 		if (ret)
 			goto err_layout;
