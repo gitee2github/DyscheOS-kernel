@@ -208,6 +208,7 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load loader failed.");
 		return -ENOTSUPP;
 	}
+
 	pr_debug("+++:loader loaded.");
 
 	if (!ins->kernel.enabled)
@@ -218,6 +219,7 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load kernel failed.");
 		return -ENOTSUPP;
 	}
+
 	pr_debug("+++:kernel loaded.");
 
 	if (ins->fdt.enabled) {
