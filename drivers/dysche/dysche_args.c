@@ -96,18 +96,22 @@ static int dysche_parse_file_resource(struct dysche_instance *ins, char *buf,
 	switch (token) {
 	case Opt_kernel:
 		target = &ins->kernel;
+		target->type = DYSCHE_T_SLAVE_KERNEL;
 		break;
 	case Opt_rootfs:
 		target = &ins->rootfs;
+		target->type = DYSCHE_T_SLAVE_ROOTFS;
 		break;
 	case Opt_fdt:
 		target = &ins->fdt;
+		target->type = DYSCHE_T_SLAVE_FDT;
 		break;
 	default:
 		return -EINVAL;
 	}
 
 	target->enabled = true;
+	target->ins = ins;
 	target->filename = kstrdup(buf, GFP_KERNEL);
 	return 0;
 }

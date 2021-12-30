@@ -2,6 +2,7 @@
 #include <asm/uaccess.h>
 #include <linux/idr.h>
 #include <linux/slab.h>
+#include <linux/io.h>
 
 #include "dysche_partition.h"
 
@@ -15,24 +16,6 @@ static int raw_get_size(struct dysche_resource *r)
 		return -EINVAL;
 
 	return r->rawdata.size;
-}
-
-static int raw_get_resource(struct dysche_resource *r, void *buf, size_t count)
-{
-	int ret;
-	if (!r || !r->enabled || !r->get_size)
-		return -EINVAL;
-
-	ret = r->get_size(r);
-	if (ret < 0)
-		return ret;
-
-	if (ret > count)
-		return -EOVERFLOW;
-
-	memcpy(buf, r->rawdata.data, count);
-
-	return 0;
 }
 
 static int raw_fdt_release(struct dysche_resource *r)
@@ -67,48 +50,55 @@ static int file_get_size(struct dysche_resource *r)
 	if (IS_ERR(fp))
 		return PTR_ERR(fp);
 
-	//fs = get_fs();
-	//set_fs(KERNEL_DS);
-
-	//ret = vfs_stat(r->filename, &stat);
-	//size = stat.size;
 	size = fp->f_inode->i_size;
 	filp_close(fp, NULL);
-	//set_fs(fs);
 
 	return size;
 }
 
-static int file_get_resource(struct dysche_resource *r, void *buf, size_t count)
+static int file_load_resource(struct dysche_resource *r)
 {
+	struct dysche_instance *ins = r->ins;
 	struct file *fp;
-	//mm_segment_t fs;
-	int size = 0;
+	int ret = 0, count;
 	loff_t pos = 0;
+	phys_addr_t paddr;
+	void *buf;
+
 	if (!r || !r->enabled || !r->get_size)
 		return -EINVAL;
 
-	size = r->get_size(r);
-	if (size < 0)
-		return size;
+	paddr = dysche_get_mem_phy(ins, r->type);
+	count = dysche_get_mem_size(ins, r->type);
 
-	if (size > count)
+	ret = r->get_size(r);
+	if (ret < 0)
+		return ret;
+
+	if (ret > count)
 		return -EOVERFLOW;
 
-	fp = filp_open(r->filename, O_RDONLY, 0);
-	if (IS_ERR(fp))
-		return PTR_ERR(fp);
+	buf = memremap(paddr, ret, MEMREMAP_WB);
+	if (!buf)
+		return -EIO;
 
-	//fs = get_fs();
-	//set_fs(KERNEL_DS);
+	fp = filp_open(r->filename, O_RDONLY, 0);
+	if (IS_ERR(fp)) {
+		ret = PTR_ERR(fp);
+		goto unmap;
+	}
 
 	kernel_read(fp, buf, count, &pos);
 
 	filp_close(fp, NULL);
-	//set_fs(fs);
+
+unmap:
+	memunmap(buf);
 
 	return 0;
 }
+
+extern int dysche_fdt_file_load_resource(struct dysche_resource *res);
 
 int si_create(const char *buf, struct dysche_instance **contain)
 {
@@ -130,12 +120,12 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	// default callbacks.
 	ins->fdt.get_size = ins->kernel.get_size = ins->rootfs.get_size =
 		file_get_size;
-	ins->fdt.get_resource = ins->kernel.get_resource =
-		ins->rootfs.get_resource = file_get_resource;
+	ins->kernel.load_resource = ins->rootfs.load_resource =
+		file_load_resource;
+	ins->fdt.load_resource = dysche_fdt_file_load_resource;
 	ins->fdt.release = ins->kernel.release = ins->rootfs.release =
 		file_release;
 	ins->loader.get_size = raw_get_size;
-	ins->loader.get_resource = raw_get_resource;
 
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
@@ -145,9 +135,17 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	if (ret)
 		goto err_parse;
 
-	ret = dysche_prepare_loader(ins);
-	if (ret)
+	if (!ins->kernel.enabled) {
+		pr_err("No kernel provided, exit.");
 		goto err_layout;
+	}
+
+	if (!ins->loader.enabled) {
+		ins->loader.get_size = raw_get_size;
+		ret = dysche_prepare_loader(ins);
+		if (ret)
+			goto err_layout;
+	}
 
 	// TODO: fill cmdline for dysche_instance.
 
@@ -159,11 +157,6 @@ int si_create(const char *buf, struct dysche_instance **contain)
 
 		ins->fdt.release = raw_fdt_release;
 		ins->fdt.enabled = true;
-	}
-
-	if (!ins->kernel.enabled) {
-		pr_err("No kernel provided, exit.");
-		goto err_layout;
 	}
 
 	ret = init_partition_sysfs(ins);
@@ -205,29 +198,35 @@ int si_run(struct dysche_instance *ins)
 	if (ret)
 		return ret;
 
-	ret = fill_memory_region_from_dysche_resource(ins,
-						      DYSCHE_T_SLAVE_LOADER, 0);
+	if (!ins->loader.enabled)
+		return -ENOTSUPP;
+
+	ret = ins->loader.load_resource(&ins->loader);
 	if (ret) {
 		pr_err("load loader failed.");
 		return -ENOTSUPP;
 	}
 
-	ret = fill_memory_region_from_dysche_resource(ins,
-						      DYSCHE_T_SLAVE_KERNEL, 0);
+	if (!ins->kernel.enabled)
+		return -ENOTSUPP;
+
+	ret = ins->kernel.load_resource(&ins->kernel);
 	if (ret) {
 		pr_err("load kernel failed.");
 		return -ENOTSUPP;
 	}
 
-	ret = fill_memory_region_from_dysche_resource(ins,
-				DYSCHE_T_SLAVE_FDT, 0);
-	if (ret)
-		pr_warn("load fdt failed.");
+	if (ins->fdt.enabled) {
+		ret = ins->fdt.load_resource(&ins->fdt);
+		if (ret)
+			pr_warn("load fdt failed, do not use fdt.");
+	}
 
-	ret = fill_memory_region_from_dysche_resource(ins,
-				DYSCHE_T_SLAVE_ROOTFS, 0);
-	if (ret)
-		pr_warn("load rootfs failed.");
+	if (ins->rootfs.enabled) {
+		ret = ins->rootfs.load_resource(&ins->rootfs);
+		if (ret)
+			pr_warn("load rootfs failed, do not use rootfs.");
+	}
 
 	// TODO: prepare resources.
 

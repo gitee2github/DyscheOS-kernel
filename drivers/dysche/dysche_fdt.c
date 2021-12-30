@@ -10,6 +10,120 @@
 
 #define MAX_FDT_SIZE SZ_2M
 
+static int node_offset(void *fdt, const char *node_path)
+{
+	int offset = fdt_path_offset(fdt, node_path);
+	if (offset == -FDT_ERR_NOTFOUND)
+		/* Add the node to root if not found, dropping the leading '/' */
+		offset = fdt_add_subnode(fdt, 0, node_path + 1);
+	return offset;
+}
+
+static uint32_t get_cell_size(const void *fdt)
+{
+	int len;
+	uint32_t cell_size = 1;
+	int offset = fdt_path_offset(fdt, "/");
+	const uint32_t *size_len = NULL;
+
+	if (offset != -FDT_ERR_NOTFOUND)
+		size_len = fdt_getprop(fdt, offset, "#size-cells", &len);
+
+	if (size_len)
+		cell_size = fdt32_to_cpu(*size_len);
+	return cell_size;
+}
+
+static int setprop(void *fdt, const char *node_path, const char *property,
+		   uint32_t *val_array, int size)
+{
+	int offset = node_offset(fdt, node_path);
+	if (offset < 0)
+		return offset;
+	return fdt_setprop(fdt, offset, property, val_array, size);
+}
+
+int dysche_fdt_file_load_resource(struct dysche_resource *res)
+{
+	struct dysche_instance *ins = res->ins;
+	struct file *fp;
+	int ret, i, chosen_offset, mem_count = 0;
+	uint32_t memsize;
+	loff_t pos = 0;
+	phys_addr_t paddr;
+	uint32_t mem_reg_property[2 * 2 * DYSCHE_MAX_MEM_REGIONS];
+	void *buf;
+
+	if (!ins->fdt.enabled)
+		return -EINVAL;
+
+	if (!ins->dysche_mem_region_nr)
+		return -EINVAL;
+
+	fp = filp_open(res->filename, O_RDONLY, 0);
+	if (IS_ERR(fp))
+		return PTR_ERR(fp);
+
+	paddr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_FDT);
+	buf = memremap(paddr, MAX_FDT_SIZE, MEMREMAP_WB);
+	if (!buf) {
+		ret = -EIO;
+		goto close;
+	}
+
+	kernel_read(fp, buf, MAX_FDT_SIZE, &pos);
+
+	ret = fdt_open_into(buf, buf, MAX_FDT_SIZE);
+	if (ret)
+		goto unmap;
+
+	memsize = get_cell_size(buf);
+
+	for (i = 0; i < ins->dysche_mem_region_nr; ++i) {
+		if (i == 0) {
+			paddr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_KERNEL);
+			pos = ins->mems[0].size - (paddr - ins->mems[0].phys);
+		} else {
+			paddr = ins->mems[i].phys;
+			pos = ins->mems[i].size;
+		}
+		if (memsize == 2) {
+			uint64_t *mem_reg_prop64 = (uint64_t *)mem_reg_property;
+			mem_reg_prop64[mem_count++] = cpu_to_fdt64(paddr);
+			mem_reg_prop64[mem_count++] = cpu_to_fdt64(pos);
+		} else {
+			mem_reg_property[mem_count++] = cpu_to_fdt32(paddr);
+			mem_reg_property[mem_count++] = cpu_to_fdt32(pos);
+		}
+	}
+
+	chosen_offset = node_offset(buf, "/chosen");
+	if (chosen_offset < 0) {
+		chosen_offset = fdt_add_subnode(buf, 0, "/chosen");
+		BUG_ON(chosen_offset < 0);
+	}
+
+	if (mem_count) {
+		setprop(buf, "/memory", "reg", mem_reg_property,
+			4 * mem_count * memsize);
+	}
+	if (ins->rootfs.enabled) {
+		paddr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_ROOTFS);
+		i = ins->rootfs.get_size(&ins->rootfs);
+		fdt_setprop_u64(buf, chosen_offset, "linux,initrd-start",
+				paddr);
+		fdt_setprop_u64(buf, chosen_offset, "linux,initrd-end",
+				paddr + i);
+	}
+
+	ret = fdt_pack(buf);
+unmap:
+	memunmap(buf);
+close:
+	filp_close(fp, NULL);
+	return ret;
+}
+
 int dysche_generate_fdt(struct dysche_instance *ins)
 {
 	int err, offset, i;

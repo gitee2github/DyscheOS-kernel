@@ -26,6 +26,17 @@ enum si_status_e {
 	SI_S_INVALID,
 };
 
+enum dysche_memory_type {
+	DYSCHE_T_SH_DYSCHE_CONFIG,
+	DYSCHE_T_SH_VCONSOLE,
+	DYSCHE_T_SH_PARTEP,
+
+	DYSCHE_T_SLAVE_LOADER,
+	DYSCHE_T_SLAVE_KERNEL,
+	DYSCHE_T_SLAVE_FDT,
+	DYSCHE_T_SLAVE_ROOTFS,
+};
+
 #define DYSCHE_CONFIG_MAGIC_BEGIN 0x20200806
 #define DYSCHE_CONFIG_MAGIC_END 0x20211102
 struct dysche_config {
@@ -69,6 +80,8 @@ struct dysche_memory {
 // message for kernel/fdt/rootfs etc
 struct dysche_resource {
 	bool enabled;
+	struct dysche_instance *ins;
+	enum dysche_memory_type type;
 	union {
 		const char *filename;
 		struct {
@@ -77,21 +90,9 @@ struct dysche_resource {
 		} rawdata;
 	};
 	int (*release)(struct dysche_resource *);
-	int (*get_resource)(struct dysche_resource *, void *tgt, size_t count);
+	int (*load_resource)(struct dysche_resource *); // called before run.
 	int (*get_size)(struct dysche_resource *);
 };
-
-static inline int get_from_dysche_resource(struct dysche_resource *r, void *buf,
-					   size_t count)
-{
-	if (!r || !r->enabled)
-		return -EINVAL;
-
-	if (!r->get_resource)
-		return -ENOTSUPP;
-
-	return r->get_resource(r, buf, count);
-}
 
 static inline int release_dysche_resource(struct dysche_resource *r)
 {
@@ -129,17 +130,6 @@ struct dysche_instance {
 	struct kobject dysche_kobj;
 
 	int flag;
-};
-
-enum dysche_memory_type {
-	DYSCHE_T_SH_DYSCHE_CONFIG,
-	DYSCHE_T_SH_VCONSOLE,
-	DYSCHE_T_SH_PARTEP,
-
-	DYSCHE_T_SLAVE_LOADER,
-	DYSCHE_T_SLAVE_KERNEL,
-	DYSCHE_T_SLAVE_FDT,
-	DYSCHE_T_SLAVE_ROOTFS,
 };
 
 // arguments.
