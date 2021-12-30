@@ -194,6 +194,8 @@ int si_run(struct dysche_instance *ins)
 	// TODO: status change.
 	int ret, cpu;
 	unsigned long addr;
+
+	pr_info("Dysche Run: %s", ins->name);
 	ret = init_dysche_config(ins);
 	if (ret)
 		return ret;
@@ -206,6 +208,7 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load loader failed.");
 		return -ENOTSUPP;
 	}
+	pr_debug(":loader loaded.");
 
 	if (!ins->kernel.enabled)
 		return -ENOTSUPP;
@@ -215,6 +218,7 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load kernel failed.");
 		return -ENOTSUPP;
 	}
+	pr_debug(": kernel loaded.");
 
 	if (ins->fdt.enabled) {
 		ret = ins->fdt.load_resource(&ins->fdt);
@@ -232,12 +236,14 @@ int si_run(struct dysche_instance *ins)
 
 	cpu = cpumask_first(&ins->cpu_mask);
 	addr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_LOADER);
-	pr_info("Use cpu%d for boot cpu on addr(0x%lx)", cpu, addr);
+	pr_debug("Use cpu%d as boot cpu, start from addr(0x%lx)", cpu, addr);
+
 	ret = dysche_boot_cpu(cpu, addr);
 	if (ret) {
 		pr_err("boot cpu failed(%d).", ret);
 		return ret;
 	}
+
 	return 0;
 }
 
