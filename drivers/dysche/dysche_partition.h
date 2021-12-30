@@ -117,7 +117,7 @@ struct dysche_instance {
 	int dysche_mem_region_nr;
 	struct dysche_memory mems[DYSCHE_MAX_MEM_REGIONS];
 	cpumask_t cpu_mask;
-	char slave_name[DYSCHE_NAME_LEN];
+	char name[DYSCHE_NAME_LEN];
 	struct dysche_resource loader;
 	struct dysche_resource kernel;
 	struct dysche_resource fdt;

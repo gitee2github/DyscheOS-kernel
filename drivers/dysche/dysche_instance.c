@@ -152,7 +152,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	// TODO: fill cmdline for dysche_instance.
 
 	if (!ins->fdt.enabled) {
-		printk(KERN_INFO"Prepare FDT for [%s]\n", ins->slave_name);
+		printk(KERN_INFO"Prepare FDT for [%s]\n", ins->name);
 		ret = dysche_generate_fdt(ins);
 		if (ret)
 			goto err_layout;
@@ -219,13 +219,13 @@ int si_run(struct dysche_instance *ins)
 		return -ENOTSUPP;
 	}
 
-	ret = fill_memory_region_from_dysche_resource(ins, DYSCHE_T_SLAVE_FDT,
-						      0);
+	ret = fill_memory_region_from_dysche_resource(ins,
+				DYSCHE_T_SLAVE_FDT, 0);
 	if (ret)
 		pr_warn("load fdt failed.");
 
 	ret = fill_memory_region_from_dysche_resource(ins,
-						      DYSCHE_T_SLAVE_ROOTFS, 0);
+				DYSCHE_T_SLAVE_ROOTFS, 0);
 	if (ret)
 		pr_warn("load rootfs failed.");
 
@@ -241,6 +241,7 @@ int si_run(struct dysche_instance *ins)
 	}
 	return 0;
 }
+
 int si_destroy(struct dysche_instance *ins)
 {
 	fini_dysche_config(ins);

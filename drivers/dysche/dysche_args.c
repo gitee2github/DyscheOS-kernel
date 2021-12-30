@@ -7,7 +7,7 @@
 typedef int (*dysche_parser)(struct dysche_instance *, char *, int);
 
 enum {
-	Opt_slave_name,
+	Opt_name,
 	Opt_memory,
 	Opt_cpu_ids,
 	Opt_cmdline,
@@ -26,8 +26,8 @@ static int dysche_parse_normal_string(struct dysche_instance *ins, char *buf,
 	int limit;
 
 	switch (token) {
-	case Opt_slave_name:
-		target = ins->slave_name;
+	case Opt_name:
+		target = ins->name;
 		limit = DYSCHE_NAME_LEN;
 		break;
 	case Opt_cmdline:
@@ -123,7 +123,7 @@ static int dysche_parse_ostype(struct dysche_instance *ins, char *buf,
 }
 
 static dysche_parser dysche_parsers[] = {
-	[Opt_slave_name] = dysche_parse_normal_string,
+	[Opt_name] = dysche_parse_normal_string,
 	[Opt_memory] = dysche_parse_memory_regions,
 	[Opt_cpu_ids] = dysche_parse_cpu,
 	[Opt_cmdline] = dysche_parse_normal_string,
@@ -134,7 +134,7 @@ static dysche_parser dysche_parsers[] = {
 };
 
 static match_table_t s_dysche_create_args = {
-	{ Opt_slave_name, "slave_name=%s" },
+	{ Opt_name, "name=%s" },
 
 	// Format: SlaveOS-Memory Configuration, SIZE@ADDR,SIZE@ADDR...
 	{ Opt_memory, "memory=%s" },

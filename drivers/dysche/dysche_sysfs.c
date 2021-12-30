@@ -115,7 +115,7 @@ static ssize_t desc_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 	si_lock(ins);
 	ret = sprintf(buf, "%s\n\tName: %s\n\tID: %d\n\tcmdline: %s\n",
-		      "Description", ins->slave_name, ins->slave_id,
+		      "Description", ins->name, ins->slave_id,
 		      ins->cmdline);
 	si_unlock(ins);
 
@@ -228,7 +228,7 @@ int init_partition_sysfs(struct dysche_instance *part)
 		return -ENODEV;
 
 	ret = kobject_init_and_add(&part->dysche_kobj, &partition_type,
-				   dysche_root, "%s", part->slave_name);
+				   dysche_root, "%s", part->name);
 
 	return ret;
 }
