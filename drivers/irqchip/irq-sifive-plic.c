@@ -276,7 +276,7 @@ static int plic_starting_cpu(unsigned int cpu)
 static int __init plic_init(struct device_node *node,
 		struct device_node *parent)
 {
-	int error = 0, nr_contexts, nr_handlers = 0, i;
+	int error = 0, nr_contexts, nr_handlers = 0, i, off = 1;
 	u32 nr_irqs;
 	struct plic_priv *priv;
 	struct plic_handler *handler;
@@ -305,6 +305,10 @@ static int __init plic_init(struct device_node *node,
 			&plic_irqdomain_ops, priv);
 	if (WARN_ON(!priv->irqdomain))
 		goto out_iounmap;
+
+#ifdef CONFIG_RISCV_M_MODE
+	off = 0;
+#endif
 
 	for (i = 0; i < nr_contexts; i++) {
 		struct of_phandle_args parent;
@@ -358,10 +362,10 @@ static int __init plic_init(struct device_node *node,
 		cpumask_set_cpu(cpu, &priv->lmask);
 		handler->present = true;
 		handler->hart_base =
-			priv->regs + CONTEXT_BASE + i * CONTEXT_PER_HART;
+			priv->regs + CONTEXT_BASE + (2 * hartid + off) * CONTEXT_PER_HART;
 		raw_spin_lock_init(&handler->enable_lock);
 		handler->enable_base =
-			priv->regs + ENABLE_BASE + i * ENABLE_PER_HART;
+			priv->regs + ENABLE_BASE + (2 * hartid + off) * ENABLE_PER_HART;
 		handler->priv = priv;
 done:
 		for (hwirq = 1; hwirq <= nr_irqs; hwirq++)
