@@ -115,7 +115,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	if (ret < 0)
 		goto err_alloc;
 
-	ins->slave_id = ret;
+	ins->id = ret;
 
 	// default callbacks.
 	ins->fdt.get_size = ins->kernel.get_size = ins->rootfs.get_size =
@@ -174,7 +174,7 @@ err_parse:
 	release_dysche_resource(&ins->loader);
 	release_dysche_resource(&ins->rootfs);
 	release_dysche_resource(&ins->fdt);
-	idr_remove(&dysche_instances, ins->slave_id);
+	idr_remove(&dysche_instances, ins->id);
 
 err_alloc:
 	kfree(ins);
@@ -258,7 +258,7 @@ int si_destroy(struct dysche_instance *ins)
 	release_dysche_resource(&ins->rootfs);
 	release_dysche_resource(&ins->fdt);
 
-	idr_remove(&dysche_instances, ins->slave_id);
+	idr_remove(&dysche_instances, ins->id);
 
 	kfree(ins);
 	return 0;

@@ -9,7 +9,7 @@ int init_dysche_config(struct dysche_instance* ins)
 
 	ins->config->magic_begin = DYSCHE_CONFIG_MAGIC_BEGIN;
 	ins->config->magic_end = DYSCHE_CONFIG_MAGIC_END;
-	ins->config->id = ins->slave_id;
+	ins->config->id = ins->id;
 
 	return 0;	
 }

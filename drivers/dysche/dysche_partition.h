@@ -64,11 +64,13 @@ struct dysche_config {
 		int hotscale_ret; // hotscale cpu errno
 	} hotscale;
 
+	u32 _;
 	u32 magic_end;
 };
 
 enum OSType {
 	LINUX_KERNEL,
+	BARE_METAL,
 	UNKNOWN_KERNEL,
 };
 
@@ -111,9 +113,8 @@ static inline int release_dysche_resource(struct dysche_resource *r)
 }
 
 struct dysche_instance {
-
 	// init in create progress.
-	uint32_t slave_id;
+	uint32_t id;
 	enum OSType ostype;
 	int dysche_mem_region_nr;
 	struct dysche_memory mems[DYSCHE_MAX_MEM_REGIONS];

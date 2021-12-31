@@ -115,8 +115,7 @@ static ssize_t desc_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 	si_lock(ins);
 	ret = sprintf(buf, "%s\n\tName: %s\n\tID: %d\n\tcmdline: %s\n",
-		      "Description", ins->name, ins->slave_id,
-		      ins->cmdline);
+		      "Description", ins->name, ins->id, ins->cmdline);
 	si_unlock(ins);
 
 	return ret;
@@ -190,13 +189,20 @@ static struct kobj_attribute partep_attribute = __ATTR_WO(partep);
 static ssize_t restart_store(struct kobject *kobj, struct kobj_attribute *attr,
 			     const char *buf, size_t count)
 {
+	struct dysche_instance *ins = kobj_to_dysche(kobj);
+	ins->config->_ = 0;
+
 	return count;
 }
 
 static ssize_t restart_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
-	return sprintf(buf, "TODO: restart show.");
+	size_t ret = 0;
+	struct dysche_instance *ins = kobj_to_dysche(kobj);
+
+	ret = sprintf(buf, "%s: restart info:", ins->name);
+	return ret;
 }
 static struct kobj_attribute restart_attribute = __ATTR_RW(restart);
 
@@ -204,7 +210,11 @@ static struct kobj_attribute restart_attribute = __ATTR_RW(restart);
 static ssize_t cmdline_show(struct kobject *kobj, struct kobj_attribute *attr,
 			    char *buf)
 {
-	return sprintf(buf, "TODO: get cmdline.");
+	ssize_t ret = 0;
+	struct dysche_instance *ins = kobj_to_dysche(kobj);
+	ret = sprintf(buf, "%s: kernel cmdline: [%s]", ins->name, ins->cmdline);
+
+	return ret;
 }
 static struct kobj_attribute cmdline_attribute =
 	__ATTR(cmdline, 0400, cmdline_show, NULL);
