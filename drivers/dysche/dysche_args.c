@@ -123,6 +123,7 @@ static int dysche_parse_ostype(struct dysche_instance *ins, char *buf,
 		ins->ostype = LINUX_KERNEL;
 	else
 		ins->ostype = UNKNOWN_KERNEL;
+
 	return 0;
 }
 
@@ -138,20 +139,28 @@ static dysche_parser dysche_parsers[] = {
 };
 
 static match_table_t s_dysche_create_args = {
+	// Mandatory, must-have
 	{ Opt_name, "name=%s" },
 
-	// Format: SlaveOS-Memory Configuration, SIZE@ADDR,SIZE@ADDR...
+	// Mandatory, must-have. Format: SIZE@ADDR,SIZE@ADDR...
 	{ Opt_memory, "memory=%s" },
 
-	// Format: SlaveOS CPU, <cpu number>-cpu number>:<used size>/<group size>
+	// Mandatory, must-have. Format: <cpu number>-cpu number>:<used size>/<group size>
 	{ Opt_cpu_ids, "cpu_ids=%s" },
 
+	// Opt-in. Boot arguments for kernel, should be supplied to kernel image as is
 	{ Opt_cmdline, "cmdline=%s" },
 
-	// Format: Resources
+	// Mandatory, must-have. Format: /path/to/kernel-image
 	{ Opt_kernel, "kernel=%s" },
+
+	// Opt-in. Supply rootfs image as *initrd/initramfs* image as rootfs
 	{ Opt_rootfs, "rootfs=%s" },
+
+	// Mandatory, must-have.
 	{ Opt_fdt, "fdt=%s" },
+
+	// Opt-in.
 	{ Opt_ostype, "ostype=%s" },
 
 	// Err

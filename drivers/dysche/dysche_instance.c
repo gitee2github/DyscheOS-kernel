@@ -208,7 +208,7 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load loader failed.");
 		return -ENOTSUPP;
 	}
-	pr_debug(":loader loaded.");
+	pr_debug("+++:loader loaded.");
 
 	if (!ins->kernel.enabled)
 		return -ENOTSUPP;
@@ -218,18 +218,22 @@ int si_run(struct dysche_instance *ins)
 		pr_err("load kernel failed.");
 		return -ENOTSUPP;
 	}
-	pr_debug(": kernel loaded.");
+	pr_debug("+++:kernel loaded.");
 
 	if (ins->fdt.enabled) {
 		ret = ins->fdt.load_resource(&ins->fdt);
 		if (ret)
 			pr_warn("load fdt failed, do not use fdt.");
+	} else {
+		pr_debug("---:fdt skipped.");
 	}
 
 	if (ins->rootfs.enabled) {
 		ret = ins->rootfs.load_resource(&ins->rootfs);
 		if (ret)
 			pr_warn("load rootfs failed, do not use rootfs.");
+	} else {
+		pr_debug("---:rootfs skipped.");
 	}
 
 	// TODO: prepare resources.

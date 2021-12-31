@@ -174,6 +174,7 @@ int dysche_generate_fdt(struct dysche_instance *ins)
 	phys = efi_get_fdt_params(&mm);
 	if (!phys)
 		goto free_buf;
+
 	fdt_setprop_u64(buf, offset, "linux,uefi-system-table", phys);
 
 	// bootargs
