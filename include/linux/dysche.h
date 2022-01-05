@@ -1,7 +1,7 @@
 #ifndef __DYSCHE_S___
 #define __DYSCHE_S___
 
-extern bool dysche_mode;
+bool is_dysche_mode(void);
 
 /* max partition count */
 #define	PARTITION_MAXCNT	4

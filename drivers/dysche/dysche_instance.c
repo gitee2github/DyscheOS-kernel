@@ -148,6 +148,7 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	}
 
 	// TODO: fill cmdline for dysche_instance.
+	strcat(ins->cmdline, " dysche_mode ");
 
 	if (!ins->fdt.enabled) {
 		printk(KERN_INFO"Prepare FDT for [%s]\n", ins->name);

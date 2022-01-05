@@ -42,3 +42,18 @@ static int __init parse_dysche_map_opt(char *str)
 	return 0;
 }
 early_param("dysche_reserve", parse_dysche_map_opt);
+
+static bool dysche_mode = false;
+
+bool is_dysche_mode(void)
+{
+	return dysche_mode;
+}
+
+static int __init parse_dysche_mode(char *str)
+{
+	dysche_mode = true;
+
+	return 0;
+}
+early_param("dysche_mode", parse_dysche_mode);

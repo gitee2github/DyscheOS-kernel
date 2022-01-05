@@ -107,6 +107,7 @@ int dysche_fdt_file_load_resource(struct dysche_resource *res)
 		setprop(buf, "/memory", "reg", mem_reg_property,
 			4 * mem_count * memsize);
 	}
+
 	if (ins->rootfs.enabled) {
 		paddr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_ROOTFS);
 		i = ins->rootfs.get_size(&ins->rootfs);
@@ -114,6 +115,10 @@ int dysche_fdt_file_load_resource(struct dysche_resource *res)
 				paddr);
 		fdt_setprop_u64(buf, chosen_offset, "linux,initrd-end",
 				paddr + i);
+	}
+
+	if (strlen(ins->cmdline) > 0) {
+		fdt_setprop_string(buf, chosen_offset, "bootargs", ins->cmdline);
 	}
 
 	ret = fdt_pack(buf);
