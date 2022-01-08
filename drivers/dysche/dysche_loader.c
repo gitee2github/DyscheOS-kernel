@@ -16,30 +16,33 @@ static unsigned long _kernel_offset;
 
 static int loader_load_resource(struct dysche_resource *r)
 {
-	struct dysche_instance *ins = r->ins;
-	unsigned long *tgt;
-	int ret, count;
+	unsigned long *tgt = NULL;
+	int rsize = 0, count = 0;
 	phys_addr_t paddr;
 	void *buf;
 
 	if (!r || !r->enabled || !r->get_size)
 		return -EINVAL;
 
-	paddr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_LOADER);
-	count = dysche_get_mem_size(ins, DYSCHE_T_SLAVE_LOADER);
+	paddr = dysche_get_mem_phy(r->ins, DYSCHE_T_SLAVE_LOADER);
+	count = dysche_get_mem_size(r->ins, DYSCHE_T_SLAVE_LOADER);
 
-	ret = r->get_size(r);
-	if (ret < 0)
-		return ret;
+	rsize = r->get_size(r);
+	if (rsize < 0) {
+		// unlikely happen.
+		return rsize;
+	}
 
-	if (ret > count)
+	if (rsize > count) {
+		// unlikely happen.
 		return -EOVERFLOW;
+	}
 
-	buf = memremap(paddr, ret, MEMREMAP_WB);
+	buf = memremap(paddr, rsize, MEMREMAP_WB);
 	if (!buf)
 		return -EIO;
 
-	memcpy(buf, r->rawdata.data, count);
+	memcpy(buf, r->rawdata.data, min(rsize, count));
 
 	tgt = (unsigned long *)(buf + text_fdt_offset);
 	*tgt = _fdt_offset;

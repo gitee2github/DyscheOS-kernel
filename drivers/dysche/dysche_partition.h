@@ -143,9 +143,9 @@ void fini_partition_sysfs(struct dysche_instance *ins);
 // 
 int init_memory_layout(struct dysche_instance*ins);
 void fini_memory_layout(struct dysche_instance* ins);
-size_t dysche_get_mem_size(struct dysche_instance *ins,
+size_t dysche_get_mem_size(const struct dysche_instance *ins,
 			   enum dysche_memory_type type);
-phys_addr_t dysche_get_mem_phy(struct dysche_instance *ins,
+phys_addr_t dysche_get_mem_phy(const struct dysche_instance *ins,
 			       enum dysche_memory_type type);
 
 // shared part of dysche memory

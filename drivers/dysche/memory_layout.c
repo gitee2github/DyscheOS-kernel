@@ -20,7 +20,7 @@ static const struct memory_layout layouts[] = {
 	[DYSCHE_T_SLAVE_ROOTFS] = { SZ_16M + SZ_128M, SZ_512M },
 };
 
-phys_addr_t dysche_get_mem_phy(struct dysche_instance *ins,
+phys_addr_t dysche_get_mem_phy(const struct dysche_instance *ins,
 			     enum dysche_memory_type type)
 {
 	if (!ins || !ins->dysche_mem_region_nr)
@@ -29,7 +29,7 @@ phys_addr_t dysche_get_mem_phy(struct dysche_instance *ins,
 	return ins->mems[0].phys + layouts[type].offset;
 }
 
-size_t dysche_get_mem_size(struct dysche_instance *ins,
+size_t dysche_get_mem_size(const struct dysche_instance *ins,
 			   enum dysche_memory_type type)
 {
 	return layouts[type].size;

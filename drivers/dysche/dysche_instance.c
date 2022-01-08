@@ -210,8 +210,6 @@ int si_run(struct dysche_instance *ins)
 		return -ENOTSUPP;
 	}
 
-	pr_debug("+++:loader loaded.");
-
 	if (!ins->kernel.enabled)
 		return -ENOTSUPP;
 
@@ -221,14 +219,12 @@ int si_run(struct dysche_instance *ins)
 		return -ENOTSUPP;
 	}
 
-	pr_debug("+++:kernel loaded.");
-
 	if (ins->fdt.enabled) {
 		ret = ins->fdt.load_resource(&ins->fdt);
 		if (ret)
 			pr_warn("load fdt failed, do not use fdt.");
 	} else {
-		pr_debug("---:fdt skipped.");
+		pr_info("---:fdt skipped.");
 	}
 
 	if (ins->rootfs.enabled) {
@@ -236,14 +232,15 @@ int si_run(struct dysche_instance *ins)
 		if (ret)
 			pr_warn("load rootfs failed, do not use rootfs.");
 	} else {
-		pr_debug("---:rootfs skipped.");
+		pr_info("---:rootfs skipped.");
 	}
 
 	// TODO: prepare resources.
 
 	cpu = cpumask_first(&ins->cpu_mask);
 	addr = dysche_get_mem_phy(ins, DYSCHE_T_SLAVE_LOADER);
-	pr_debug("Use cpu%d as boot cpu, start from addr(0x%lx)", cpu, addr);
+	pr_info("Use cpu%d as boot cpu, start from addr(0x%lx)", cpu, addr);
+	pr_info("Dysche Run: %s. kit it out.", ins->name);
 
 	ret = dysche_boot_cpu(cpu, addr);
 	if (ret) {
