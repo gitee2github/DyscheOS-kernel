@@ -100,24 +100,22 @@ unmap:
 
 extern int dysche_fdt_file_load_resource(struct dysche_resource *res);
 
-int si_create(const char *buf, struct dysche_instance **contain)
+static int init_ins(struct dysche_instance **ins_p)
 {
-	// TODO: status change.
-	struct dysche_instance *ins;
-	int ret;
-
-	ins = kzalloc(sizeof(*ins), GFP_KERNEL);
+	int ret = 0;
+	struct dysche_instance *ins = kzalloc(sizeof(*ins), GFP_KERNEL);
 	if (!ins)
 		return -ENOMEM;
 
 	ret = idr_alloc(&dysche_instances, ins, 1, PARTITION_MAXCNT,
 			GFP_KERNEL);
+
 	if (ret < 0)
 		goto err_alloc;
 
 	ins->id = ret;
 
-	// default callbacks.
+	/* default callbacks. */
 	ins->fdt.get_size = ins->kernel.get_size = ins->rootfs.get_size =
 		file_get_size;
 	ins->kernel.load_resource = ins->rootfs.load_resource =
@@ -126,6 +124,25 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	ins->fdt.release = ins->kernel.release = ins->rootfs.release =
 		file_release;
 	ins->loader.get_size = raw_get_size;
+
+	*ins_p = ins;
+	return 0;
+
+err_alloc:
+	kfree(ins);
+	return ret;
+}
+
+int si_create(const char *buf, struct dysche_instance **contain)
+{
+	// TODO: status change.
+	struct dysche_instance *ins;
+	int ret;
+
+	ret = init_ins(&ins);
+	if (ret < 0) {
+		return ret;
+	}
 
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
@@ -147,10 +164,15 @@ int si_create(const char *buf, struct dysche_instance **contain)
 			goto err_layout;
 	}
 
-	// TODO: fill cmdline for dysche_instance.
+	/* extend cmdline for dysche_instance. */
 	strcat(ins->cmdline, " dysche_mode ");
 
 	if (!ins->fdt.enabled) {
+		pr_err("No dtb provided. exit.");
+		goto err_layout;
+
+		/* below code is masked out currently due to the functionality
+		   is not ready yet. */
 		printk(KERN_INFO"Prepare FDT for [%s]\n", ins->name);
 		ret = dysche_generate_fdt(ins);
 		if (ret)
@@ -177,8 +199,6 @@ err_parse:
 	release_dysche_resource(&ins->fdt);
 	idr_remove(&dysche_instances, ins->id);
 
-err_alloc:
-	kfree(ins);
 	return ret;
 }
 
