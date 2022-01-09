@@ -56,8 +56,9 @@ static int loader_load_resource(struct dysche_resource *r)
 
 int dysche_prepare_loader(struct dysche_instance *ins)
 {
+	/* using the builtin loader. */
 	phys_addr_t loader, fdt, kernel;
-	// default to use builtin loader.
+
 	ins->loader.ins = ins;
 	ins->loader.type = DYSCHE_T_SLAVE_LOADER;
 	ins->loader.rawdata.data = _dysche_loader_start;

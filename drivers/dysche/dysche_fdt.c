@@ -118,7 +118,21 @@ int dysche_fdt_file_load_resource(struct dysche_resource *res)
 	}
 
 	if (strlen(ins->cmdline) > 0) {
-		fdt_setprop_string(buf, chosen_offset, "bootargs", ins->cmdline);
+		char *fdt = buf;
+		int  boot_line_len = 0;
+		char *cmd_buf = NULL;
+		const char *boot_line = fdt_getprop(fdt, chosen_offset, "bootargs", &boot_line_len);
+		boot_line_len += strlen(ins->cmdline);
+
+		if (boot_line_len > PAGE_SIZE) {
+			pr_info("bootline size should NOT bigger than PAGE_SIZE.");
+		} else {
+			cmd_buf = (char *)kzalloc(boot_line_len, GFP_KERNEL);
+			strcat(cmd_buf, boot_line);
+			strcat(cmd_buf, ins->cmdline);
+
+			fdt_setprop_string(fdt, chosen_offset, "bootargs", cmd_buf);
+		}
 	}
 
 	ret = fdt_pack(buf);
