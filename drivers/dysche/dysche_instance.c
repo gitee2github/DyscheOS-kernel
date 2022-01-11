@@ -100,18 +100,27 @@ unmap:
 
 extern int dysche_fdt_file_load_resource(struct dysche_resource *res);
 
-static int init_ins(struct dysche_instance **ins_p)
+static void free_instance(struct dysche_instance *ins)
+{
+	if (!ins)
+		return;
+
+	idr_remove(&dysche_instances, ins->id);
+	kfree(ins);
+}
+
+static struct dysche_instance *alloc_instance(void)
 {
 	int ret = 0;
 	struct dysche_instance *ins = kzalloc(sizeof(*ins), GFP_KERNEL);
 	if (!ins)
-		return -ENOMEM;
+		return NULL;
 
 	ret = idr_alloc(&dysche_instances, ins, 1, PARTITION_MAXCNT,
 			GFP_KERNEL);
 
 	if (ret < 0)
-		goto err_alloc;
+		goto err_idr;
 
 	ins->id = ret;
 
@@ -125,12 +134,11 @@ static int init_ins(struct dysche_instance **ins_p)
 		file_release;
 	ins->loader.get_size = raw_get_size;
 
-	*ins_p = ins;
-	return 0;
+	return ins;
 
-err_alloc:
+err_idr:
 	kfree(ins);
-	return ret;
+	return NULL;
 }
 
 int si_create(const char *buf, struct dysche_instance **contain)
@@ -139,10 +147,9 @@ int si_create(const char *buf, struct dysche_instance **contain)
 	struct dysche_instance *ins;
 	int ret;
 
-	ret = init_ins(&ins);
-	if (ret < 0) {
-		return ret;
-	}
+	ins = alloc_instance();
+	if (ins == NULL)
+		return -ENOMEM;
 
 	ret = dysche_parse_args(ins, buf);
 	if (ret)
@@ -197,7 +204,7 @@ err_parse:
 	release_dysche_resource(&ins->loader);
 	release_dysche_resource(&ins->rootfs);
 	release_dysche_resource(&ins->fdt);
-	idr_remove(&dysche_instances, ins->id);
+	free_instance(ins);
 
 	return ret;
 }
@@ -282,8 +289,6 @@ int si_destroy(struct dysche_instance *ins)
 	release_dysche_resource(&ins->rootfs);
 	release_dysche_resource(&ins->fdt);
 
-	idr_remove(&dysche_instances, ins->id);
-
-	kfree(ins);
+	free_instance(ins);
 	return 0;
 }

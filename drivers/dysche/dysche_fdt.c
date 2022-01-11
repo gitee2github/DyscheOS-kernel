@@ -118,10 +118,9 @@ int dysche_fdt_file_load_resource(struct dysche_resource *res)
 	}
 
 	if (strlen(ins->cmdline) > 0) {
-		char *fdt = buf;
 		int  boot_line_len = 0;
 		char *cmd_buf = NULL;
-		const char *boot_line = fdt_getprop(fdt, chosen_offset, "bootargs", &boot_line_len);
+		const char *boot_line = fdt_getprop(buf, chosen_offset, "bootargs", &boot_line_len);
 		boot_line_len += strlen(ins->cmdline);
 
 		if (boot_line_len > PAGE_SIZE) {
@@ -131,7 +130,8 @@ int dysche_fdt_file_load_resource(struct dysche_resource *res)
 			strcat(cmd_buf, boot_line);
 			strcat(cmd_buf, ins->cmdline);
 
-			fdt_setprop_string(fdt, chosen_offset, "bootargs", cmd_buf);
+			fdt_setprop_string(buf, chosen_offset, "bootargs", cmd_buf);
+			kfree(cmd_buf);
 		}
 	}
 
