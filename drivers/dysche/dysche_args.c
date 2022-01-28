@@ -183,7 +183,7 @@ int dysche_parse_args(struct dysche_instance *si, const char *str)
 	if (!raw_str)
 		return -ENOMEM;
 
-	while ((p = strsep(&raw_str, " ")) != NULL) {
+	while ((p = strsep(&raw_str, ";")) != NULL) {
 		if (!*p)
 			continue;
 
